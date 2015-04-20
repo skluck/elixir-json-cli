@@ -1,0 +1,7 @@
+# Compiled artifacts
+/_build
+/deps
+/jsoncli
+
+erl_crash.dump
+*.ez
