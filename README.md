@@ -8,6 +8,7 @@
 - iex (repl)
 - mix (build tool)
 - hex (package manager)
+- exUnit (unit testing)
 
 ### Commands
 
@@ -20,6 +21,9 @@
 - `mix escript.build`
   > Elixir and Erlang code is compiled to beam application code. To make this code executable, escript must be generated
   > that embeds all elixir code to run from the shell. Only erlang must be installed to run this escript.
+
+- `mix test`
+  > Run unit tests
 
 ### Anatomy of an Elixir app
 
