@@ -43,6 +43,8 @@ defmodule JsonCLI do
 
     end
 
+    # process
+
     def process({file, path}) do
         IO.puts "Hello, you are trying to parse a file?"
 
@@ -59,20 +61,41 @@ defmodule JsonCLI do
         bomb(:help)
     end
 
+    # output
+
     def output({decoded_json, nil}) do
-        output(decoded_json)
+        decoded_json |> output
     end
 
     def output({decoded_json, path}) do
-
-        # get path here
-
-        output(decoded_json)
+        dig(decoded_json, String.split(path, ".")) |> output
     end
 
     def output(decoded_json) do
         IO.puts Encoder.encode(decoded_json, [])
     end
+
+    # dig
+
+    def dig(decoded_json, []) do
+        decoded_json
+    end
+
+    def dig(decoded_json, [head | path]) when is_map(decoded_json) do
+        decoded_json = decoded_json[head]
+
+        if decoded_json === nil do
+            bomb("Invalid JSON Path: \"#{head}\" is missing")
+        end
+
+        if path !== [] and not is_map(decoded_json) do
+            bomb("Invalid JSON Path: Expected \"#{head}\" to be map")
+        end
+
+        decoded_json |> dig(path)
+    end
+
+    # utilities
 
     def parse_file(encoded_json) do
 
