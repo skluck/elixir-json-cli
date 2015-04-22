@@ -1,68 +1,86 @@
 defmodule JsonCLI do
+    alias Poison.Parser
+    alias Poison.SyntaxError
+    alias Poison.Encoder
 
     def main(args) do
-        args |> parse_args |> process
+        args |> parse_args |> process |> output
     end
 
     def parse_args(args) do
-        options = OptionParser.parse(args, [switches: [help: :boolean]])
+        options = OptionParser.parse(args, [
+            switches: [help: :boolean, path: :string]
+        ])
 
         case options do
             {[help: true], _, _}      -> :help
-            {[path: path], [], _}     -> {path, nil}
-            {[path: path], [file], _} -> {path, file}
-            {_, [], _}                -> {nil, nil}
-            {_, [file], _}            -> {nil, file}
+            {[path: path], args, _}   -> parse_args(path, args)
+            {_, args, _}              -> parse_args(nil, args)
 
             # No match
             _                         -> :help
         end
     end
 
-    def get_file(file) do
-        if file !== nil do
-            contents = case File.read(file) do
-                {:ok, body}      -> body
-                {:error, reason} -> bomb(reason, 2)
-            end
+    def parse_args(path, args) do
+        case args do
+            []      -> {:stdin, nil}
+            [file]  -> {file, path}
         end
-
-        if contents === nil do
-            IO.puts "Trying stdin"
-            contents = IO.read(1)
-            #
-            # WHAT IF NO STDIN?????
-            #
-
-            cond do
-                contents !== :eof ->
-                    contents = contents <> IO.read(:all)
-                true ->
-                    contents = nil
-            end
-        end
-
-        if contents === nil do
-            bomb("No stdin provided", 2)
-        end
-
-        contents
     end
 
-    def process({path, file}) do
-        IO.puts "Hello, you are trying to parse something?"
+    def process({:stdin, path}) do
+        IO.puts "Hello, you are trying to parse stdin?"
 
-        json = get_file(file)
+        contents = IO.read(1)
+        # WHAT IF NO STDIN?????
 
-        parsed = case Poison.decode(json) do
-            {:ok, value}       -> value
-            _                  -> bomb("Invalid JSON could not be parsed", 3)
+        if contents !== :eof do
+            contents = contents <> IO.read(:all)
         end
+
+        {parse_file(contents), path}
+
+    end
+
+    def process({file, path}) do
+        IO.puts "Hello, you are trying to parse a file?"
+
+        contents = case File.read(file) do
+            {:ok, body}      -> body
+            {:error, reason} -> bomb(reason, 2)
+        end
+
+        {parse_file(contents), path}
 
     end
 
     def process(:help) do
         bomb(:help)
+    end
+
+    def output({decoded_json, nil}) do
+        output(decoded_json)
+    end
+
+    def output({decoded_json, path}) do
+
+        # get path here
+
+        output(decoded_json)
+    end
+
+    def output(decoded_json) do
+        IO.puts Encoder.encode(decoded_json, [])
+    end
+
+    def parse_file(encoded_json) do
+
+        try do
+            Parser.parse!(encoded_json)
+        rescue
+            exception in SyntaxError -> bomb("Invalid JSON: " <> exception.message, 3)
+        end
     end
 
     def bomb(reason, exit_code \\ 1) do
